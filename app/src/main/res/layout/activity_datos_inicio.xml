@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:gravity="center"
+    android:layout_gravity="center"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="15dp"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="5dp">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_margin="10dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_marginTop="5dp"
+                android:layout_width="match_parent"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:layout_height="wrap_content"
+                android:text="@string/app_name_2"
+                android:fontFamily="@font/nyata"
+                android:textSize="25sp" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:layout_marginTop="10dp"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                app:srcCompat="@drawable/ic_phone_3d" />
+
+            <TextView
+                android:padding="5dp"
+                android:layout_marginTop="5dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/login"
+                android:fontFamily="@font/nyata"
+                android:textSize="23sp" />
+
+            <EditText
+                android:layout_marginLeft="10dp"
+                android:layout_marginRight="10dp"
+                android:id="@+id/edtDNI"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="10dp"
+                android:imeOptions="actionNext"
+                android:inputType="number"
+                android:background="@drawable/background_edit_text"
+                android:hint="@string/dni"
+                android:textSize="18sp"
+                android:padding="10dp"
+                android:fontFamily="@font/nyata"/>
+
+            <EditText
+                android:layout_marginLeft="10dp"
+                android:layout_marginRight="10dp"
+                android:id="@+id/edtPsw"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="10dp"
+                android:imeOptions="actionDone"
+                android:background="@drawable/background_edit_text"
+                android:hint="@string/password"
+                android:textSize="18sp"
+                android:inputType="textPassword"
+                android:padding="10dp"
+                android:fontFamily="@font/nyata"/>
+
+            <Button
+                android:layout_marginTop="15dp"
+                android:layout_marginBottom="5dp"
+                android:gravity="center"
+                android:id="@+id/btnOn"
+                android:layout_width="250dp"
+                android:layout_height="wrap_content"
+                android:text="Iniciar sesión"
+                android:textStyle="bold"
+                android:textColor="@color/colorWhite"
+                android:background="@drawable/button_border"
+                android:fontFamily="@font/nyata"/>
+
+            <Button
+                android:layout_marginBottom="10dp"
+                android:gravity="center"
+                android:id="@+id/btnRegister"
+                android:layout_width="250dp"
+                android:layout_height="wrap_content"
+                android:text="Registrarse"
+                android:textStyle="bold"
+                android:textColor="@color/colorWhite"
+                android:background="@drawable/button_border"
+                android:fontFamily="@font/nyata"/>
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
+
+
+</LinearLayout>

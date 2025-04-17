@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <fragment
+            android:id="@+id/map"
+            android:name="com.google.android.gms.maps.SupportMapFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardObjetos"
+            android:layout_alignParentBottom="true"
+            app:cardCornerRadius="50dp"
+            android:foreground="?attr/selectableItemBackground"
+            android:focusable="true"
+            android:clickable="true"
+            android:layout_width="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_height="wrap_content"
+            android:layout_margin="20dp">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                app:tint="@color/colorBlue"
+                android:layout_margin="10dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_3d" />
+
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardOA"
+            android:layout_alignParentBottom="true"
+            app:cardCornerRadius="50dp"
+            android:foreground="?attr/selectableItemBackground"
+            android:focusable="true"
+            android:clickable="true"
+            android:layout_marginBottom="90dp"
+            android:layout_marginLeft="20dp"
+            android:layout_width="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_height="wrap_content">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                app:tint="@color/colorBlue"
+                android:layout_margin="10dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_album" />
+
+        </androidx.cardview.widget.CardView>
+
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardPerfil"
+            android:foreground="?attr/selectableItemBackground"
+            android:focusable="true"
+            android:clickable="true"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            app:cardCornerRadius="50dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="20dp">
+
+            <ImageView
+                android:padding="2dp"
+                android:layout_margin="10dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_user" />
+        </androidx.cardview.widget.CardView>
+
+
+    </RelativeLayout>
+
+</LinearLayout>

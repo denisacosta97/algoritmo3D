@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">Buscando Algoritmos</string>
+    <string name="app_name_2">BUSCANDO ALGORITMOS</string>
+    <string name="bienvenido">¡BIENVENIDO!</string>
+    <string name="bienvenida_descripcion">BUSCANDO ALGORITMOS es una aplicación basada en Realidad Aumentada para el aprendizaje ubicuo de los conceptos básicos de programación.</string>
+    <string name="registro">REGISTRO</string>
+    <string name="login">INICIAR SESIÓN</string>
+    <string name="registro_descripcion">A fines de autentificación, completa el siguiente campo con tu número de documento.</string>
+    <string name="dni">D.N.I</string>
+    <string name="password">Contraseña</string>
+    <string name="dniInvalido">¡DNI inválido!</string>
+    <string name="fechaEjemplo">Jueves 6 de Julio - 12:45:45</string>
+    <string name="algoritmo">Algoritmo</string>
+    <string name="modo_ra">Modo RA</string>
+    <string name="modo_3d">Modo 3D</string>
+    <string name="objNoLoad">¡Error al cargar el objeto!</string>
+    <string name="objNoDownload">¡Error al descargar el objeto!</string>
+    <string name="errorReAnchor">¡Error al reiniciar anclaje!</string>
+    <string name="objDesconocido">¡Objeto desconocido!</string>
+</resources>
