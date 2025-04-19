@@ -3,7 +3,9 @@ package com.unse.proyecto.ubicua;
 import android.app.Application;
 import android.content.Context;
 
-public class UbicuaApplication extends Application {
+import androidx.multidex.MultiDexApplication;
+
+public class UbicuaApplication extends MultiDexApplication {
 
     private static UbicuaApplication instance;
 

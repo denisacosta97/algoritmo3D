@@ -7,6 +7,12 @@ import android.location.Location;
 import android.os.Bundle;
 import android.view.View;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.cardview.widget.CardView;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
+
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
@@ -16,31 +22,28 @@ import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.unse.compilador.lenguaje.model.Movement;
 import com.unse.proyecto.ubicua.BaseActivity;
 import com.unse.proyecto.ubicua.R;
+import com.unse.proyecto.ubicua.compilador.CompilerModule;
 import com.unse.proyecto.ubicua.interfaz.controller.MainActivityViewModel;
+import com.unse.proyecto.ubicua.interfaz.dialogo.DialogoAlgoritmo;
 import com.unse.proyecto.ubicua.interfaz.dialogo.DialogoBienvenida;
 import com.unse.proyecto.ubicua.interfaz.dialogo.DialogoGeneral;
-import com.unse.proyecto.ubicua.interfaz.dialogo.DialogoMenu;
+import com.unse.proyecto.ubicua.interfaz.dialogo.DialogoPerfil;
 import com.unse.proyecto.ubicua.interfaz.dialogo.DialogoObjetos;
+import com.unse.proyecto.ubicua.interfaz.listener.OnClickListener;
 import com.unse.proyecto.ubicua.interfaz.listener.YesNoDialogListener;
 import com.unse.proyecto.ubicua.network.model.response.MapObjectResponse;
-import com.unse.proyecto.ubicua.obj3d.O3DModule;
+import com.unse.proyecto.ubicua.network.model.response.UserResponse;
 import com.unse.proyecto.ubicua.obj3d.arcore.ArCoreRenderActivity;
+import com.unse.proyecto.ubicua.principal.modelo.LearningObject;
 import com.unse.proyecto.ubicua.principal.modelo.Objeto3D;
+import com.unse.proyecto.ubicua.principal.util.PreferenciasManager;
 import com.unse.proyecto.ubicua.principal.util.Utils;
 import com.unse.proyecto.ubicua.sensores.GPSModule;
 import com.unse.proyecto.ubicua.sensores.MapaUtils;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.cardview.widget.CardView;
-import androidx.lifecycle.ViewModelProvider;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,25 +52,16 @@ public class MainActivity extends BaseActivity {
     CardView cardObjetos, cardPerfil, cardOA;
     GoogleMap mGoogleMap;
     SupportMapFragment mMapFragment;
+    PreferenciasManager preferenciasManager;
     Marker markerPosition;
     Circle markerCicle;
     GPSModule mGPSModule;
-    O3DModule mO3DModule;
-    Bitmap markerUbi, markerObject, markerPregunta;
-    Marker selected;
-    Objeto3D selectedObj;
-    boolean isShow = false, isDialog;
-    public static List<Integer> IDS = new ArrayList<>();
+    Bitmap markerUbi, markerObject;
+    MapObjectResponse selected;
     private MainActivityViewModel viewModel;
 
     private final ArrayList<MapObjectResponse> objectList = new ArrayList<>();
     private final List<Marker> objectMarkers = new ArrayList<>();
-
-    static {
-        IDS.add(R.raw.secuencia);
-        IDS.add(R.raw.condicional);
-        IDS.add(R.raw.repeticion);
-    }
 
     @Override
     protected void onPause() {
@@ -79,6 +73,13 @@ public class MainActivity extends BaseActivity {
     protected void onRestart() {
         super.onRestart();
         mGPSModule.onRestart();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (viewModel != null)
+            viewModel.getUser();
     }
 
     @Override
@@ -104,33 +105,66 @@ public class MainActivity extends BaseActivity {
             if (mapObjects != null && !mapObjects.isEmpty()) {
                 objectList.clear();
                 objectList.addAll(mapObjects);
-                if (mGoogleMap != null) {
-                    agregarModelosAlMapa(objectList);
-                }
+                agregarModelosAlMapa(objectList);
+            }
+        });
+        viewModel.mapLearningObject.observe(this, learningObjectResponse -> {
+            if (learningObjectResponse != null){
+                LearningObject learningObject = LearningObject.build(learningObjectResponse);
+                Intent intent = new Intent(getApplicationContext(), OAActivity.class);
+                intent.putExtra(Utils.OA_DATA, learningObject);
+                startActivity(intent);
+            }
+        });
+        viewModel.addObject.observe(this, objeto3D -> {
+            if (objeto3D != null){
+                DialogoAlgoritmo dialogoAlgoritmo = new DialogoAlgoritmo(getApplicationContext(), objeto3D, closeAlgoritmoListener);
+                dialogoAlgoritmo.show(getSupportFragmentManager(), "dialogo_alg");
             }
         });
     }
 
     private void loadData() {
-        mGPSModule = new GPSModule(this);
-        DialogoBienvenida dialogoBienvenida = new DialogoBienvenida();
-        dialogoBienvenida.show(getSupportFragmentManager(), "dialog_b");
+        mGPSModule = GPSModule.getInstance(this);
+        preferenciasManager = new PreferenciasManager(getApplicationContext());
+        showDialogoBienvenida();
         mMapFragment.getMapAsync(this::onMapReady);
+    }
+
+    private void showDialogoBienvenida() {
+        if (preferenciasManager.isFirstTimeLaunch()) {
+            DialogoBienvenida dialogoBienvenida = new DialogoBienvenida(preferenciasManager);
+            dialogoBienvenida.show(getSupportFragmentManager(), "dialog_b");
+        }
     }
 
     private void loadListener() {
         cardOA.setOnClickListener(v -> {
-
+            showAlgoritmo();
         });
-        cardOA.setVisibility(View.GONE);
+        cardOA.setVisibility(View.VISIBLE);
         cardObjetos.setOnClickListener(v -> {
             DialogoObjetos dialogoObjetos = new DialogoObjetos(getApplicationContext());
             dialogoObjetos.show(getSupportFragmentManager(), "dialog_o");
         });
         cardPerfil.setOnClickListener(v -> {
-            DialogoMenu dialogoMenu = new DialogoMenu(getApplicationContext());
-            dialogoMenu.show(getSupportFragmentManager(), "dialog_v");
+            DialogoPerfil dialogoPerfil = new DialogoPerfil(getApplicationContext());
+            dialogoPerfil.show(getSupportFragmentManager(), "dialog_v");
         });
+    }
+
+
+    OnClickListener<Objeto3D> closeAlgoritmoListener = object -> {
+        viewModel.getLearningObject();
+    };
+
+    private void showAlgoritmo() {
+        CompilerModule compilerModule = new CompilerModule();
+        UserResponse userResponse = preferenciasManager.getObject(Utils.USER_DATA, UserResponse.class);
+        compilerModule.build(mGPSModule.getHistory(), userResponse.getLevel());
+        List<Movement> movements = compilerModule.translate();
+        Objeto3D objeto3D = Objeto3D.build(selected, movements, "");
+        viewModel.addObject(movements, mGPSModule.getHistory(), objeto3D);
     }
 
     private void loadViews() {
@@ -141,7 +175,7 @@ public class MainActivity extends BaseActivity {
     }
 
     private void agregarModelosAlMapa(ArrayList<MapObjectResponse> modelos) {
-        if (mGoogleMap == null || modelos == null) return;
+        if (mGoogleMap == null || modelos == null || modelos.isEmpty()) return;
         for (MapObjectResponse modelo : modelos) {
             if (modelo.lat == 0 || modelo.lon == 0) continue;
             LatLng posicion = new LatLng(modelo.lat, modelo.lon);
@@ -167,67 +201,59 @@ public class MainActivity extends BaseActivity {
                         .setListener(new YesNoDialogListener() {
                             @Override
                             public void yes() {
-                                open(clickedMarker, getModelName(clickedMarker));
-                                isDialog = false;
+                                open(clickedMarker);
                             }
 
                             @Override
                             public void no() {
-                                isDialog = false;
+
                             }
                         });
                 DialogoGeneral dialogoGeneral = builder.build();
                 dialogoGeneral.setCancelable(false);
                 dialogoGeneral.show(getSupportFragmentManager(), "dialogo");
-                isDialog = true;
             }
             return true;
         });
     }
 
-    private String getModelName(Marker marker) {
-        String modelName = "";
-        for(MapObjectResponse object : objectList){
-            if(object.nombre.equalsIgnoreCase(marker.getTitle())){
-                modelName = object.modelo;
-                break;
-            }
-        }
-        return modelName;
-    }
-
-    private void open(Marker marker, String modelo) {
-        String nombre = modelo;
-        if (marker != null) {
-            selected = marker;
-            isShow = true;
-            //mO3DModule.discover(selectedObj);
+    private void open(Marker marker) {
+        MapObjectResponse objectResponse = getObject(marker.getTitle());
+        if (objectResponse != null) {
+            selected = objectResponse;
             Intent intent = new Intent(getApplicationContext(), ArCoreRenderActivity.class);
             intent.putExtra(Utils.FOUND_MODE, true);
-            intent.putExtra(Utils.OBJ_INFO, nombre);
+            intent.putExtra(Utils.OBJ_INFO, Objeto3D.build(objectResponse));
             startActivityForResult(intent, Utils.OPEN_DISCOVER);
         } else {
             Utils.showToast(getApplicationContext(), getString(R.string.objDesconocido));
         }
     }
 
+    private MapObjectResponse getObject(String nombre) {
+        for (MapObjectResponse objectResponse : objectList) {
+            if (objectResponse.nombre.equalsIgnoreCase(nombre))
+                return objectResponse;
+        }
+        return null;
+    }
+
     public void onMapReady(GoogleMap googleMap) {
         mGoogleMap = googleMap;
         markerObject = MapaUtils.getDrawable(getApplicationContext(), R.drawable.ic_marker_3d, 150, 150);
-        markerPregunta = MapaUtils.getDrawable(getApplicationContext(), R.drawable.ic_marker_question, 150, 150);
         markerUbi = MapaUtils.getDrawable(getApplicationContext(), R.drawable.ic_marker_home, 150, 150);
 
         LatLng latLng = MapaUtils.init(this, mGoogleMap);
+        initLocation(latLng);
+    }
+
+    public void initLocation(LatLng latLng) {
         if (latLng != null) {
             Location location = new Location("");
             location.setLatitude(latLng.latitude);
             location.setLongitude(latLng.longitude);
             updateLocation(location);
             mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 19));
-
-            if (!objectList.isEmpty()) {
-                agregarModelosAlMapa(objectList);
-            }
         } else {
             mGPSModule.openGPSDialog();
         }
@@ -235,8 +261,9 @@ public class MainActivity extends BaseActivity {
 
     public void updateLocation(Location location) {
         if (mGoogleMap == null) return;
-        mGoogleMap.clear();
-        objectMarkers.clear();
+        if (markerPosition != null) markerPosition.remove();
+        if (markerCicle != null) markerCicle.remove();
+        if (objectMarkers.isEmpty()) agregarModelosAlMapa(objectList);
 
         markerPosition = mGoogleMap.addMarker(new MarkerOptions()
                 .position(new LatLng(location.getLatitude(), location.getLongitude()))
@@ -248,8 +275,6 @@ public class MainActivity extends BaseActivity {
                 .radius(30)
                 .strokeWidth(1)
                 .fillColor(getResources().getColor(R.color.colorRedCircle)));
-
-        agregarModelosAlMapa(objectList);
     }
 
     @Override
@@ -268,30 +293,15 @@ public class MainActivity extends BaseActivity {
 
     private void determineCondition(int resultCode, Intent data) {
         if (resultCode == Activity.RESULT_OK) {
-            if (selected != null) selected.remove();
-            if (mO3DModule != null) mO3DModule.discover(selectedObj);
+            //Aqui logica de confirmar objeto
+            saveFoundObject();
         } else if (resultCode == Activity.RESULT_CANCELED) {
-            if (selected != null) selected.remove();
+            //No deberia hacer nada
         }
-        isShow = false;
     }
 
-    private void oa(Integer level) {
-        InputStream inputStream = getResources().openRawResource(IDS.get(level - 1));
-        File file = new File(getExternalFilesDir(null), "archivo.zip");
-        try (FileOutputStream fileOutputStream = new FileOutputStream(file)) {
-            byte[] buffer = new byte[1024];
-            int length;
-            while ((length = inputStream.read(buffer)) != -1) {
-                fileOutputStream.write(buffer, 0, length);
-            }
-            inputStream.close();
-            Utils.unzip(file.getAbsolutePath(), getExternalFilesDir(null) + "/");
-            Intent intent = new Intent(getApplicationContext(), OAActivity.class);
-            intent.putExtra(Utils.INT_TYPE, level);
-            startActivity(intent);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    private void saveFoundObject() {
+        //Guardo objeto
+        showAlgoritmo();
     }
 }

@@ -15,16 +15,12 @@ import com.unse.proyecto.ubicua.BaseActivity;
 import com.unse.proyecto.ubicua.R;
 import com.unse.proyecto.ubicua.interfaz.controller.DatosInicioViewModel;
 import com.unse.proyecto.ubicua.interfaz.listener.YesNoDialogListener;
-import com.unse.proyecto.ubicua.interfaz.dialogo.DialogoDescargarDatos;
 import com.unse.proyecto.ubicua.principal.util.PreferenciasManager;
 import com.unse.proyecto.ubicua.interfaz.dialogo.DialogoGeneral;
 import com.unse.proyecto.ubicua.principal.util.Utils;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
-
-import android.app.ProgressDialog;
 
 public class DatosInicioActivity extends BaseActivity implements SensorEventListener {
 

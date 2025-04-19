@@ -32,7 +32,7 @@
                 android:id="@+id/txtTitulo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="¡DESCARGANDO DATOS!"
+                android:text="¡!"
                 android:textColor="@color/colorWhite"
                 android:textSize="22sp"
                 android:fontFamily="@font/nyata"/>

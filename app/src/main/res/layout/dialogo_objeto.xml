@@ -38,6 +38,23 @@
             android:layout_marginEnd="10dp"
             android:background="@color/colorBlack" />
 
+        <LinearLayout
+            android:id="@+id/progress_horizontal"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:layout_margin="10dp"
+            android:weightSum="1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <ProgressBar
+                android:id="@+id/progres"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler"
             android:layout_marginTop="10dp"
@@ -47,9 +64,6 @@
             tools:itemCount="10"
             app:spanCount="4"
             app:layoutManager="androidx.recyclerview.widget.GridLayoutManager" />
-
-
-
 
     </LinearLayout>
 

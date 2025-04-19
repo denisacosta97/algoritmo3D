@@ -2,8 +2,6 @@ package com.unse.proyecto.ubicua.interfaz.activity;
 
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -11,22 +9,32 @@ import android.webkit.WebViewClient;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.unse.proyecto.ubicua.R;
-import com.unse.proyecto.ubicua.interfaz.dialogo.DialogoDescargarDatos;
+import com.unse.proyecto.ubicua.interfaz.controller.OAActivityViewModel;
 import com.unse.proyecto.ubicua.interfaz.dialogo.DialogoGeneral;
 import com.unse.proyecto.ubicua.interfaz.dialogo.DialogoProcesando;
 import com.unse.proyecto.ubicua.interfaz.listener.YesNoDialogListener;
+import com.unse.proyecto.ubicua.principal.modelo.LearningObject;
 import com.unse.proyecto.ubicua.principal.util.Utils;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 public class OAActivity extends AppCompatActivity {
 
+    private static final String ARCHIVO_ZIP = "archivo.zip";
     WebView webView;
     CardView cardView;
-    Integer level = -1;
+    LearningObject learningObject;
+    DialogoProcesando dialogoProcesando;
+    private OAActivityViewModel viewModel;
     public static List<String> FOLDER = new ArrayList<>();
 
     static {
@@ -40,56 +48,64 @@ public class OAActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_oa);
 
-        if (getIntent().getIntExtra(Utils.INT_TYPE, -1) != -1) {
-            level = getIntent().getIntExtra(Utils.INT_TYPE, -1);
+        if (getIntent().getParcelableExtra(Utils.OA_DATA) != null) {
+            learningObject = getIntent().getParcelableExtra(Utils.OA_DATA);
         }
 
+        viewModel = new ViewModelProvider(this).get(OAActivityViewModel.class);
+
         loadViews();
+
+        loadObservers();
 
         loadData();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             loadListener();
         }
-
     }
 
-    private void errorDialog() {
-        DialogoGeneral.Builder builder = new DialogoGeneral.Builder(getApplicationContext())
-                .setTitulo("ERROR AL CARGA OA")
-                .setTipo(DialogoGeneral.TIPO_ACEPTAR)
-                .setIcono(R.drawable.ic_error)
-                .setDescripcion("En este momento no es posible visualizar el OA solicitado.")
-                .setListener(new YesNoDialogListener() {
-                    @Override
-                    public void yes() {
+    private void loadObservers() {
+        viewModel.showLoading.observe(this, aBoolean -> {
+            if (aBoolean) preLoad();
+            else dialogoProcesando.dismiss();
+        });
 
-                    }
-
-                    @Override
-                    public void no() {
-
-                    }
-                });
-        DialogoGeneral dialogoGeneral = builder.build();
-        dialogoGeneral.setCancelable(false);
-        dialogoGeneral.show(getSupportFragmentManager(), "dialogo");
+        viewModel.learningObject.observe(this, learningObject -> {
+            dialogoProcesando.dismiss();
+            if (learningObject != null) {
+                saveOA(learningObject);
+                loadOA();
+            } else {
+                errorDialog();
+            }
+        });
     }
+
+    private void loadOA() {
+        String filePath = "file://" + getExternalFilesDir(null) + "/" + getFolderName() + "/index.html";
+        webView.setWebViewClient(new WebViewClient());
+        WebSettings webSettings = webView.getSettings();
+        webSettings.setJavaScriptEnabled(true);
+        webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
+        webSettings.setAllowFileAccessFromFileURLs(true);
+        webSettings.setAllowUniversalAccessFromFileURLs(true);
+        webView.loadUrl(filePath);
+    }
+
+    public String getFolderName() {
+        String[] filename = learningObject.getArchivo().split("\\.");
+        for (String folder : FOLDER) {
+            if (folder.contains(filename[0]))
+                return folder;
+        }
+        return "";
+    }
+
 
     private void preLoad() {
-        YesNoDialogListener listener = new YesNoDialogListener() {
-            @Override
-            public void yes() {
-                loadData();
-            }
-
-            @Override
-            public void no() {
-
-            }
-        };
-        DialogoProcesando procesando = new DialogoProcesando(getApplicationContext(), listener, "Cargando OA...");
-        procesando.show(getSupportFragmentManager(), "dialogo");
+        dialogoProcesando = new DialogoProcesando(getApplicationContext(), "Cargando OA...");
+        dialogoProcesando.show(getSupportFragmentManager(), "dialogo");
     }
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
@@ -150,20 +166,55 @@ public class OAActivity extends AppCompatActivity {
     }
 
     private void loadData() {
-        String filePath = "file://" + getExternalFilesDir(null) + "/" + FOLDER.get(level - 1) + "/index.html";
-        webView.setWebViewClient(new WebViewClient());
-        WebSettings webSettings = webView.getSettings();
-        webSettings.setJavaScriptEnabled(true);
-        webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
-            webSettings.setAllowFileAccessFromFileURLs(true);
-            webSettings.setAllowUniversalAccessFromFileURLs(true);
-        }
-        webView.loadUrl(filePath);
+        downloadOA();
+    }
+
+    private void downloadOA() {
+        viewModel.getObjectFile(learningObject.getArchivo());
     }
 
     private void loadViews() {
         cardView = findViewById(R.id.cardPerfil);
         webView = findViewById(R.id.webview);
     }
+
+    private void saveOA(byte[] bytes) {
+        InputStream inputStream = new ByteArrayInputStream(bytes);
+        File file = new File(getExternalFilesDir(null), ARCHIVO_ZIP);
+        try (FileOutputStream fileOutputStream = new FileOutputStream(file)) {
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = inputStream.read(buffer)) != -1) {
+                fileOutputStream.write(buffer, 0, length);
+            }
+            inputStream.close();
+            Utils.unzip(file.getAbsolutePath(), getExternalFilesDir(null) + "/");
+        } catch (Exception e) {
+            errorDialog();
+        }
+    }
+
+    private void errorDialog() {
+        DialogoGeneral.Builder builder = new DialogoGeneral.Builder(getApplicationContext())
+                .setTitulo("ERROR AL CARGA OA")
+                .setTipo(DialogoGeneral.TIPO_ACEPTAR)
+                .setIcono(R.drawable.ic_error)
+                .setDescripcion("En este momento no es posible visualizar el OA solicitado.")
+                .setListener(new YesNoDialogListener() {
+                    @Override
+                    public void yes() {
+                        finish();
+                    }
+
+                    @Override
+                    public void no() {
+
+                    }
+                });
+        DialogoGeneral dialogoGeneral = builder.build();
+        dialogoGeneral.setCancelable(false);
+        dialogoGeneral.show(getSupportFragmentManager(), "dialogo");
+    }
+
+
 }

@@ -12,13 +12,12 @@ import androidx.annotation.RequiresApi;
 
 public class DownloadedObject3D extends Modelo3D {
 
-
     public DownloadedObject3D(Context context, String url) {
         super(context, url);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
+    @RequiresApi(api = Build.VERSION_CODES.N)
     public void build(YesNoDialogListener list) {
         ModelRenderable.builder()
                 .setSource(context, RenderableSource.builder().setSource(

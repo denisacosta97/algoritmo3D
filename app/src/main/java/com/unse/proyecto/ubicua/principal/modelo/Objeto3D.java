@@ -1,61 +1,44 @@
 package com.unse.proyecto.ubicua.principal.modelo;
 
+import static com.unse.proyecto.ubicua.network.di.AprendizajeUbicuoService.BASE_URL;
+
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.provider.BaseColumns;
 
 import com.google.android.gms.maps.model.LatLng;
+import com.unse.compilador.lenguaje.model.Movement;
+import com.unse.proyecto.ubicua.network.model.response.MapObjectResponse;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.List;
+
 public class Objeto3D implements Parcelable {
 
-    public static String TABLA = "objeto";
-    public static String KEY_ID = BaseColumns._ID;
-    public static String KEY_NOMBRE = "nombre";
-    public static String KEY_URL = "url";
-    public static String KEY_URL_IMG = "urlimg";
-    public static String KEY_CATEGORIA = "cat";
-    public static String KEY_XP = "xp";
-    public static String KEY_PROB = "prob";
-    public static String KEY_LAT = "lat";
-    public static String KEY_LOG = "log";
+    public static Float MAX_DEFAULT = 0.5000f;
 
-    private int id, categoria, xp;
-    private String url, nombre, urlImg;
-    private Double probabilidad, lat, log;
+    private String nombre;
+    private String url;
+    private String urlImg;
+    private Double lat;
+    private Double log;
+    private int id;
+    private List<Movement> movementList;
+    private String blockObject;
+    private Float maxSize;
     private ObjetoCaptura mObjetoCaptura;
 
     public Objeto3D() {
         this.id = 0;
     }
 
-    public Objeto3D(int id, int categoria, int xp, String url, String nombre, String urlImg,
-                    Double probabilidad, Double lat, Double log) {
-        this.id = id;
-        this.categoria = categoria;
-        this.xp = xp;
-        this.url = url;
-        this.nombre = nombre;
-        this.urlImg = urlImg;
-        this.probabilidad = probabilidad;
-        this.lat = lat;
-        this.log = log;
-    }
-
     protected Objeto3D(Parcel in) {
         id = in.readInt();
-        categoria = in.readInt();
-        xp = in.readInt();
         url = in.readString();
         nombre = in.readString();
         urlImg = in.readString();
-        if (in.readByte() == 0) {
-            probabilidad = null;
-        } else {
-            probabilidad = in.readDouble();
-        }
         if (in.readByte() == 0) {
             lat = null;
         } else {
@@ -65,6 +48,11 @@ public class Objeto3D implements Parcelable {
             log = null;
         } else {
             log = in.readDouble();
+        }
+        if (in.readByte() == 0) {
+            maxSize = null;
+        } else {
+            maxSize = in.readFloat();
         }
         mObjetoCaptura = in.readParcelable(ObjetoCaptura.class.getClassLoader());
     }
@@ -91,22 +79,23 @@ public class Objeto3D implements Parcelable {
 
     public static Objeto3D mapper(JSONObject o) {
         Objeto3D objeto3D = null;
-        try {
-            int id = o.getInt("id");
-            int categoria = o.getInt("c");
-            int xp = o.getInt("xp");
-            String url = o.getString("url");
-            String urlImg = o.getString("img");
-            String nombre = o.getString("n");
-            Double probabilidad = o.getDouble("p");
-            Double lat = o.getJSONArray("ubi").getDouble(1);
-            Double log = o.getJSONArray("ubi").getDouble(0);
-            objeto3D = new Objeto3D(id, categoria, xp, url, nombre, urlImg, probabilidad, lat, log);
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
         return objeto3D;
+    }
+
+    public List<Movement> getMovementList() {
+        return movementList;
+    }
+
+    public void setMovementList(List<Movement> movementList) {
+        this.movementList = movementList;
+    }
+
+    public String getBlockObject() {
+        return blockObject;
+    }
+
+    public void setBlockObject(String blockObject) {
+        this.blockObject = blockObject;
     }
 
     public String getUrlImg() {
@@ -129,22 +118,6 @@ public class Objeto3D implements Parcelable {
         this.id = id;
     }
 
-    public int getCategoria() {
-        return categoria;
-    }
-
-    public void setCategoria(int categoria) {
-        this.categoria = categoria;
-    }
-
-    public int getXp() {
-        return xp;
-    }
-
-    public void setXp(int xp) {
-        this.xp = xp;
-    }
-
     public String getUrl() {
         return url;
     }
@@ -159,14 +132,6 @@ public class Objeto3D implements Parcelable {
 
     public void setNombre(String nombre) {
         this.nombre = nombre;
-    }
-
-    public Double getProbabilidad() {
-        return probabilidad;
-    }
-
-    public void setProbabilidad(Double probabilidad) {
-        this.probabilidad = probabilidad;
     }
 
     public Double getLat() {
@@ -185,6 +150,10 @@ public class Objeto3D implements Parcelable {
         this.log = log;
     }
 
+    public Float getMaxSize() {
+        return maxSize;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -193,17 +162,9 @@ public class Objeto3D implements Parcelable {
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(id);
-        dest.writeInt(categoria);
-        dest.writeInt(xp);
         dest.writeString(url);
         dest.writeString(nombre);
         dest.writeString(urlImg);
-        if (probabilidad == null) {
-            dest.writeByte((byte) 0);
-        } else {
-            dest.writeByte((byte) 1);
-            dest.writeDouble(probabilidad);
-        }
         if (lat == null) {
             dest.writeByte((byte) 0);
         } else {
@@ -216,6 +177,28 @@ public class Objeto3D implements Parcelable {
             dest.writeByte((byte) 1);
             dest.writeDouble(log);
         }
+        if (maxSize == null) {
+            dest.writeByte((byte) 0);
+        } else {
+            dest.writeByte((byte) 1);
+            dest.writeFloat(maxSize);
+        }
         dest.writeParcelable(mObjetoCaptura, flags);
+    }
+
+    public static Objeto3D build(MapObjectResponse objectResponse) {
+        Objeto3D objeto3D = new Objeto3D();
+        objeto3D.setId(objectResponse.id);
+        objeto3D.setNombre(objectResponse.nombre);
+        objeto3D.setUrlImg(BASE_URL + "objects/image/" + objectResponse.imagen);
+        objeto3D.setUrl(BASE_URL + "objects/model/" + objectResponse.modelo);
+        return objeto3D;
+    }
+
+    public static Objeto3D build(MapObjectResponse objectResponse, List<Movement> movements, String blockObject) {
+        Objeto3D objeto3D = build(objectResponse);
+        objeto3D.setBlockObject(blockObject);
+        objeto3D.setMovementList(movements);
+        return objeto3D;
     }
 }

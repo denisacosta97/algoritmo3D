@@ -26,7 +26,6 @@ public class PreferenciasManager {
     }
 
     public boolean isFirstTimeLaunch() {
-
         return pref.getBoolean(Utils.IS_FIRST_TIME_LAUNCH, true);
     }
 

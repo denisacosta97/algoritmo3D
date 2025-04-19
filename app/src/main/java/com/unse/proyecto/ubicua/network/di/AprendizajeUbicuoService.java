@@ -7,7 +7,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class AprendizajeUbicuoService {
 
-    public static final String BASE_URL = "http://192.168.1.174:8080/";
+    public static final String BASE_URL = "http://192.168.1.79:8080/";
     private static AprendizajeUbicuoApi instance = null;
 
     public static AprendizajeUbicuoApi getApi() {

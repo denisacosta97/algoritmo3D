@@ -10,7 +10,6 @@ public abstract class Modelo3D {
     ModelRenderable model;
     String url;
     Context context;
-    YesNoDialogListener mListener;
 
     public Modelo3D(Context context, String url) {
         this.url = url;

@@ -82,9 +82,12 @@ public class FlechasAdapter extends RecyclerView.Adapter<FlechasAdapter.FlechasV
             }else{
                 holder.txtTitulo.setText(sentencia.getMovimiento());
             }
-            Glide.with(holder.imgIcon.getContext()).load(sentencia.getUrl().isEmpty() ?
-                    sentencia.getImg()
-                    : sentencia.getUrl()).into(holder.imgIcon);
+            Glide.with(holder.imgIcon.getContext())
+                    .load(sentencia.getUrl().isEmpty()
+                            ? sentencia.getImg()
+                            : sentencia.getUrl())
+                    .error(R.drawable.ic_error)
+                    .into(holder.imgIcon);
         }
 
     }

@@ -10,6 +10,8 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.RequestOptions;
 import com.unse.proyecto.ubicua.R;
+import com.unse.proyecto.ubicua.network.model.response.FoundedObjectResponse;
+import com.unse.proyecto.ubicua.principal.modelo.FoundedObject;
 import com.unse.proyecto.ubicua.principal.modelo.Objeto3D;
 
 import java.util.ArrayList;
@@ -18,10 +20,10 @@ import androidx.recyclerview.widget.RecyclerView;
 
 public class ObjetosAdapter extends RecyclerView.Adapter<ObjetosAdapter.ObjetoViewHolder> {
 
-    ArrayList<Objeto3D> mList;
+    ArrayList<FoundedObject> mList;
     Context mContext;
 
-    public ObjetosAdapter(ArrayList<Objeto3D> list, Context context) {
+    public ObjetosAdapter(ArrayList<FoundedObject> list, Context context) {
         mList = list;
         mContext = context;
     }
@@ -35,10 +37,10 @@ public class ObjetosAdapter extends RecyclerView.Adapter<ObjetosAdapter.ObjetoVi
 
     @Override
     public void onBindViewHolder(@androidx.annotation.NonNull ObjetoViewHolder holder, int position) {
-        Objeto3D objeto3D = mList.get(position);
+        Objeto3D objeto3D = mList.get(position).getObject3D();
         Glide.with(holder.img.getContext()).load(objeto3D.getUrlImg())
                 .apply(new RequestOptions().diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
-                        .error(R.drawable.rueda)
+                        .error(R.drawable.ic_error)
                         .placeholder(R.drawable.ic_3d_download)).into(holder.img);
     }
 

@@ -111,11 +111,10 @@
 
     </androidx.cardview.widget.CardView>
 
-    <fragment
-        android:id="@+id/arView"
-        android:name="com.google.ar.sceneform.ux.ArFragment"
+    <FrameLayout
+        android:id="@+id/ar_container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"/>
 
     <RelativeLayout
         android:layout_gravity="start"

@@ -1,6 +1,5 @@
 package com.unse.proyecto.ubicua.interfaz.dialogo;
 
-import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
@@ -12,23 +11,20 @@ import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.cardview.widget.CardView;
 import androidx.fragment.app.DialogFragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.unse.proyecto.ubicua.R;
-import com.unse.proyecto.ubicua.interfaz.adapter.FlechasAdapter;
-import com.unse.proyecto.ubicua.principal.modelo.Objeto3D;
-import com.unse.proyecto.ubicua.principal.modelo.Sentencia;
-
-import java.util.ArrayList;
+import com.unse.proyecto.ubicua.principal.util.PreferenciasManager;
 
 public class DialogoBienvenida extends DialogFragment {
 
     View view;
     Button mButton;
-    Context mContext;
+    PreferenciasManager preferenciasManager;
+
+    public DialogoBienvenida(PreferenciasManager preferenciasManager) {
+        this.preferenciasManager = preferenciasManager;
+    }
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -49,7 +45,10 @@ public class DialogoBienvenida extends DialogFragment {
     }
 
     private void loadListener() {
-        mButton.setOnClickListener(v -> this.dismiss());
+        mButton.setOnClickListener(v -> {
+            this.dismiss();
+            preferenciasManager.setFirstTimeLaunch(Boolean.FALSE);
+        });
     }
 
 
