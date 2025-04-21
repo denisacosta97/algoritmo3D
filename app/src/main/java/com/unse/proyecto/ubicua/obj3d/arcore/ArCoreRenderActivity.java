@@ -1,5 +1,7 @@
 package com.unse.proyecto.ubicua.obj3d.arcore;
 
+import static com.unse.proyecto.ubicua.network.di.AprendizajeUbicuoService.BASE_URL;
+
 import android.app.Activity;
 import android.os.Build;
 import android.os.Bundle;
@@ -12,13 +14,12 @@ import android.view.ViewGroup;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
-import androidx.fragment.app.FragmentManager;
 
 import com.google.ar.core.Anchor;
 import com.google.ar.core.Frame;
 import com.google.ar.core.Plane;
+import com.google.ar.core.Pose;
 import com.google.ar.core.TrackingState;
-import com.google.ar.core.exceptions.CameraNotAvailableException;
 import com.google.ar.sceneform.AnchorNode;
 import com.google.ar.sceneform.Node;
 import com.google.ar.sceneform.rendering.Renderable;
@@ -27,9 +28,11 @@ import com.google.ar.sceneform.ux.TransformableNode;
 import com.unse.proyecto.ubicua.R;
 import com.unse.proyecto.ubicua.interfaz.dialogo.DialogoGeneral;
 import com.unse.proyecto.ubicua.interfaz.listener.YesNoDialogListener;
+import com.unse.proyecto.ubicua.network.model.response.UserResponse;
 import com.unse.proyecto.ubicua.obj3d.DownloadedObject3D;
 import com.unse.proyecto.ubicua.obj3d.Modelo3D;
 import com.unse.proyecto.ubicua.principal.modelo.Objeto3D;
+import com.unse.proyecto.ubicua.principal.util.PreferenciasManager;
 import com.unse.proyecto.ubicua.principal.util.Utils;
 
 import java.util.ArrayList;
@@ -43,6 +46,8 @@ public class ArCoreRenderActivity extends AppCompatActivity implements View.OnCl
     Objeto3D objeto3D;
     CardView cardCargando, cardMensaje, cardClose, cardReAnchor;
     ArrayList<TransformableNode> modelos;
+    Integer level;
+    PreferenciasManager preferenciasManager;
     boolean placed = false, foundMode = false;
 
     @RequiresApi(api = Build.VERSION_CODES.N)
@@ -95,6 +100,9 @@ public class ArCoreRenderActivity extends AppCompatActivity implements View.OnCl
 
     private void loadData() {
         modelos = new ArrayList<>();
+        preferenciasManager = new PreferenciasManager(getApplicationContext());
+        UserResponse userResponse = preferenciasManager.getObject(Utils.USER_DATA, UserResponse.class);
+        level = userResponse.getLevel();
         cardReAnchor.setVisibility(View.INVISIBLE);
     }
 
@@ -118,21 +126,29 @@ public class ArCoreRenderActivity extends AppCompatActivity implements View.OnCl
 
         });
         mArSceneView.getArSceneView().getScene().addOnUpdateListener(frameTime -> {
-            if (placed)
-                return;
+            if (placed) return;
+
             Frame frame = mArSceneView.getArSceneView().getArFrame();
             Collection<Plane> planes = frame.getUpdatedTrackables(Plane.class);
+
             for (Plane plane : planes) {
                 if (plane.getTrackingState() == TrackingState.TRACKING && !placed) {
-                    Anchor anchor = plane.createAnchor(plane.getCenterPose());
-                    mAnchorNode = new AnchorNode(anchor);
-                    mAnchorNode.setParent(mArSceneView.getArSceneView().getScene());
-                    createModel(mAnchorNode);
+                    Pose pose = plane.getCenterPose();
+
+                    if (level == 2){
+                        generateBlock(plane, pose);
+                    }else{
+                        Anchor anchor1 = plane.createAnchor(pose);
+                        AnchorNode anchorNode1 = new AnchorNode(anchor1);
+                        anchorNode1.setParent(mArSceneView.getArSceneView().getScene());
+                        createModel(anchorNode1, true);
+                    }
                     placed = true;
+                    break;
                 }
             }
-
         });
+
         mArSceneView.getArSceneView().getScene().addOnPeekTouchListener((hitTestResult, motionEvent) -> {
             if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
                 Node node = hitTestResult.getNode();
@@ -145,13 +161,52 @@ public class ArCoreRenderActivity extends AppCompatActivity implements View.OnCl
         setIconForScan();
     }
 
+    private void generateBlock(Plane plane, Pose pose) {
+        // Anchor 1: en la posición original
+        Anchor anchor1 = plane.createAnchor(pose);
+        AnchorNode anchorNode1 = new AnchorNode(anchor1);
+        anchorNode1.setParent(mArSceneView.getArSceneView().getScene());
+        createModel(anchorNode1, false);
+
+        // Anchor 2: desplazado hacia adelante 10cm en la dirección de visión del plano
+        Pose poseOffset = desplazarPose(pose, 0.60f);
+        Anchor anchor2 = plane.createAnchor(poseOffset);
+        AnchorNode anchorNode2 = new AnchorNode(anchor2);
+        anchorNode2.setParent(mArSceneView.getArSceneView().getScene());
+        createModel(anchorNode2, true);
+    }
+
+    public static Pose desplazarPose(Pose pose, float distanciaAdelante) {
+        float[] zAxis = pose.getZAxis(); // dirección "hacia atrás"
+
+        // Invertimos el eje Z para obtener el "forward"
+        float[] forward = {
+                -zAxis[0] * distanciaAdelante,
+                -zAxis[1] * distanciaAdelante,
+                -zAxis[2] * distanciaAdelante
+        };
+
+        float[] nuevaPosicion = {
+                pose.tx() + forward[0],
+                pose.ty() + forward[1],
+                pose.tz() + forward[2]
+        };
+
+        return new Pose(nuevaPosicion, pose.getRotationQuaternion());
+    }
+
+
     private void setIconForScan() {
-        mArSceneView.getPlaneDiscoveryController().hide();
         ViewGroup container = findViewById(R.id.sceneform_hand_layout);
         container.removeAllViews();
-        View phoneImage = getLayoutInflater().inflate(R.layout.item_move_phone, container, true);
+
+        View phoneImage = getLayoutInflater().inflate(R.layout.item_move_phone, container, false);
+        container.addView(phoneImage);
+
         mArSceneView.getPlaneDiscoveryController().setInstructionView(phoneImage);
+        mArSceneView.getPlaneDiscoveryController().show(); // Asegura visibilidad
     }
+
 
     private void setupModel() {
         cardMensaje.setVisibility(View.INVISIBLE);
@@ -168,6 +223,19 @@ public class ArCoreRenderActivity extends AppCompatActivity implements View.OnCl
                 errorRenderable(true);
             }
         });
+        if (level == 2){
+            modelo2 = new DownloadedObject3D(getApplicationContext(), BASE_URL + "objects/model/muro_piedras.glb");
+            modelo2.build(new YesNoDialogListener() {
+                @Override
+                public void yes() {
+                    cardMensaje.setVisibility(View.VISIBLE);
+                }
+                @Override
+                public void no() {
+                    errorRenderable(true);
+                }
+            });
+        }
     }
 
     private void errorRenderable(boolean change) {
@@ -195,16 +263,17 @@ public class ArCoreRenderActivity extends AppCompatActivity implements View.OnCl
         dialogoGeneral.show(getSupportFragmentManager(), "dialogo_error");
     }
 
-    private void createModel(AnchorNode anchorNode) {
+    private void createModel(AnchorNode anchorNode, Boolean first) {
         cardMensaje.setVisibility(View.GONE);
         TransformableNode node = new TransformableNode(mArSceneView.getTransformationSystem());
         node.setName(objeto3D.getNombre());
         node.getScaleController().setMinScale(0.4999f);
-        if (objeto3D.getMaxSize() != null)
-            node.getScaleController().setMaxScale(objeto3D.getMaxSize());
+        node.getRotationController().setEnabled(false);
+        node.getScaleController().setEnabled(false);
+        node.getTranslationController().setEnabled(false);
         node.setParent(anchorNode);
-        if (getModelo() != null) {
-            node.setRenderable(getModelo());
+        if (getModelo(first) != null) {
+            node.setRenderable(getModelo(first));
             node.select();
             modelos.add(node);
         } else {
@@ -212,8 +281,8 @@ public class ArCoreRenderActivity extends AppCompatActivity implements View.OnCl
         }
     }
 
-    private Renderable getModelo() {
-        return modelo.getModel();
+    private Renderable getModelo(Boolean first) {
+        return first ? modelo.getModel() : modelo2.getModel();
     }
 
     private void loadViews() {
@@ -221,15 +290,15 @@ public class ArCoreRenderActivity extends AppCompatActivity implements View.OnCl
         cardClose = findViewById(R.id.cardClose);
         cardMensaje = findViewById(R.id.cardMovePhone);
         cardReAnchor = findViewById(R.id.cardAnchor);
-        //mArSceneView = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.arView);
-        FragmentManager fragmentManager = getSupportFragmentManager();
+        mArSceneView = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.arView);
+        /*FragmentManager fragmentManager = getSupportFragmentManager();
         mArSceneView = (ArFragment) fragmentManager.findFragmentByTag("AR_FRAGMENT");
         if (mArSceneView == null) {
             mArSceneView = new ArFragment();
             fragmentManager.beginTransaction()
                     .replace(R.id.ar_container, mArSceneView, "AR_FRAGMENT")
                     .commitNow();
-        }
+        }*/
     }
 
     @Override

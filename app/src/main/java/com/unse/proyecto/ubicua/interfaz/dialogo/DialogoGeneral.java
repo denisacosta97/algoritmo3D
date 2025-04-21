@@ -54,19 +54,16 @@ public class DialogoGeneral extends DialogFragment implements View.OnClickListen
 
         public Builder setListener(YesNoDialogListener listener) {
             this.mDialogoGeneral.setListener(listener);
-            ;
             return this;
         }
 
         public Builder setColorBackground(int color) {
             this.mDialogoGeneral.setColorBackground(color);
-            ;
             return this;
         }
 
         public Builder setColorButtonSi(int colorButton) {
             this.mDialogoGeneral.setColorButtonSi(colorButton);
-            ;
             return this;
         }
 
@@ -83,7 +80,6 @@ public class DialogoGeneral extends DialogFragment implements View.OnClickListen
 
         public Builder setTipo(int tipo) {
             this.mDialogoGeneral.setTipo(tipo);
-            ;
             return this;
         }
 
@@ -155,7 +151,7 @@ public class DialogoGeneral extends DialogFragment implements View.OnClickListen
 
     private void loadData() {
 
-        if (titulo != null) {
+        if (titulo != null && !titulo.isEmpty()) {
             txtTitulo.setVisibility(View.VISIBLE);
             txtTitulo.setText(getTitulo());
         } else

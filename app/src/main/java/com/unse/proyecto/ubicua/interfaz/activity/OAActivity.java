@@ -6,7 +6,6 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.lifecycle.ViewModelProvider;
@@ -17,12 +16,14 @@ import com.unse.proyecto.ubicua.interfaz.dialogo.DialogoGeneral;
 import com.unse.proyecto.ubicua.interfaz.dialogo.DialogoProcesando;
 import com.unse.proyecto.ubicua.interfaz.listener.YesNoDialogListener;
 import com.unse.proyecto.ubicua.principal.modelo.LearningObject;
+import com.unse.proyecto.ubicua.principal.modelo.OAResult;
+import com.unse.proyecto.ubicua.principal.modelo.ObjectRules;
+import com.unse.proyecto.ubicua.principal.modelo.ResponseStatus;
 import com.unse.proyecto.ubicua.principal.util.Utils;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,13 +31,13 @@ import java.util.List;
 public class OAActivity extends AppCompatActivity {
 
     private static final String ARCHIVO_ZIP = "archivo.zip";
+    public static final String FUNCTION = "(function() { %s })()";
     WebView webView;
     CardView cardView;
     LearningObject learningObject;
     DialogoProcesando dialogoProcesando;
     private OAActivityViewModel viewModel;
     public static List<String> FOLDER = new ArrayList<>();
-
     static {
         FOLDER.add("OA-secuencia");
         FOLDER.add("OA-condicional");
@@ -102,67 +103,172 @@ public class OAActivity extends AppCompatActivity {
         return "";
     }
 
-
     private void preLoad() {
         dialogoProcesando = new DialogoProcesando(getApplicationContext(), "Cargando OA...");
         dialogoProcesando.show(getSupportFragmentManager(), "dialogo");
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     private void loadListener() {
-        cardView.setOnClickListener(v -> {
-            /*webView.evaluateJavascript(
-                    "(function() {" +
-                            "var resultText = document.getElementById('s0b7-result').innerText;" +
-                            "return resultText;" +
-                            "})()",
-                    value -> {
-                        //Procesamiento de respusta
-                    }
-            );
-            webView.evaluateJavascript("(function() {" +
-                    "    var element1 = document.getElementById('sa0b8_141');" +
-                    "    var element2 = document.getElementById('sa1b8_141');" +
-                    "    var element3 = document.getElementById('sa2b8_141');" +
-                    "    var selected = '';" +
-                    "    if (window.getComputedStyle(element1).display === 'block') { selected = element1.innerText; }" +
-                    "    else if (window.getComputedStyle(element2).display === 'block') { selected = element2.innerText; }" +
-                    "    else if (window.getComputedStyle(element3).display === 'block') { selected = element3.innerText; }" +
-                    "    return selected;" +
-                    "})()", value -> {
-                value = value.trim();
-                value.length();
-            });
-            webView.evaluateJavascript(
-                    "(function() {" +
-                            "var resultText = document.getElementById('exe-sortableList-0-feedback').innerText;" +
-                            "return resultText;" +
-                            "})()",
-                    value -> {
-                        // Aquí manejas el resultado después de que el usuario presiona el botón
-                        value = value.trim();
-                        value.length();
-                    }
-            );*/
+        cardView.setOnClickListener(v -> validateRules());
+    }
 
-            DialogoGeneral.Builder builder = new DialogoGeneral.Builder(getApplicationContext())
-                    .setTipo(DialogoGeneral.TIPO_ACEPTAR)
-                    .setTitulo("¡Buen intento!")
-                    .setIcono(R.drawable.ic_advertencia)
-                    .setDescripcion("Recuerda que los enunciados tienen retroalimentacion para saber en qué te equivocaste.\n¡Sigue asi!")
-                    .setListener(new YesNoDialogListener() {
-                        @Override
-                        public void yes() {
-                        }
+    private void validateRules() {
+        int totalQuestions = learningObject.getRules().size();
 
-                        @Override
-                        public void no() {
-                        }
-                    });
-            DialogoGeneral dialogoGeneral = builder.build();
-            dialogoGeneral.setCancelable(false);
-            dialogoGeneral.show(getSupportFragmentManager(), "dialogo");
-        });
+        if (totalQuestions == 0) {
+            showCongratsDialog(OAResult.EMPTY);
+            return;
+        }
+
+        List<ResponseStatus> responseList = new ArrayList<>();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            for (ObjectRules rules : learningObject.getRules()) {
+                String code = String.format(FUNCTION, rules.getCode());
+
+                webView.evaluateJavascript(code, value -> {
+                    value = value.trim().replace("\"", "");
+                    if (matchesResponse(value, rules.getEmpty())) {
+                        responseList.add(ResponseStatus.PENDING);
+                    } else if (matchesResponse(value, rules.getSuccess())) {
+                        responseList.add(ResponseStatus.SUCCESS);
+                    } else if (matchesResponse(value, rules.getError())) {
+                        responseList.add(ResponseStatus.ERROR);
+                    }
+                    if (responseList.size() == totalQuestions) {
+                        processEvaluationResult(responseList);
+                    }
+                });
+
+            }
+        } else {
+            showErrorDialog("Tu dispositivo no es compatible con esta evaluación. Requiere Android 4.4 (KitKat) o superior.");
+        }
+    }
+
+    private boolean matchesResponse(String value, String expected) {
+        if (value == null || expected == null) return false;
+
+        String cleanValue = value.trim().toLowerCase();
+        String cleanExpected = expected.trim().toLowerCase();
+
+        // Caso especial: ambos vacíos
+        if (cleanValue.isEmpty() && cleanExpected.isEmpty()) return true;
+
+        // Evitamos que un expected vacío haga match con cualquier cosa
+        if (cleanExpected.isEmpty()) return false;
+
+
+        return cleanValue.startsWith(cleanExpected) || cleanValue.contains(cleanExpected);
+    }
+
+    private void processEvaluationResult(List<ResponseStatus> responses) {
+        if (responses.isEmpty()) {
+            showErrorDialog("No se detectaron respuestas. Asegúrate de completar la evaluación.");
+            return;
+        }
+
+        OAResult result = buildOAResult(responses);
+
+        if (responses.contains(ResponseStatus.PENDING)) {
+            showErrorDialog("Debes responder todas las preguntas antes de enviar la evaluación.");
+        } else if (responses.contains(ResponseStatus.ERROR)) {
+            showTryAgainDialog(result);
+        } else if (allSuccess(responses)) {
+            showCongratsDialog(result);
+        } else {
+            showErrorDialog("Ocurrió un error inesperado. Intenta nuevamente.");
+        }
+    }
+
+    private OAResult buildOAResult(List<ResponseStatus> responses) {
+        int aciertos = 0;
+        int errores = 0;
+
+        for (ResponseStatus status : responses) {
+            if (status == ResponseStatus.SUCCESS) {
+                aciertos++;
+            } else if (status == ResponseStatus.ERROR) {
+                errores++;
+            }
+        }
+
+        return new OAResult(responses.size(), aciertos, errores);
+    }
+
+    public void showErrorDialog(String message){
+        DialogoGeneral.Builder builder = new DialogoGeneral.Builder(getApplicationContext())
+                .setTipo(DialogoGeneral.TIPO_ACEPTAR)
+                .setTitulo("")
+                .setIcono(R.drawable.ic_advertencia)
+                .setDescripcion(message)
+                .setListener(new YesNoDialogListener() {
+                    @Override
+                    public void yes() { }
+
+                    @Override
+                    public void no() {
+                    }
+                });
+        DialogoGeneral dialogoGeneral = builder.build();
+        dialogoGeneral.setCancelable(false);
+        dialogoGeneral.show(getSupportFragmentManager(), "dialogo");
+    }
+
+    public void showCongratsDialog(OAResult result){
+        DialogoGeneral.Builder builder = new DialogoGeneral.Builder(getApplicationContext())
+                .setTipo(DialogoGeneral.TIPO_ACEPTAR)
+                .setTitulo("¡Felicidades!")
+                .setIcono(R.drawable.ic_check)
+                .setDescripcion("Tus respuestas fueron correctas\n¡continua buscando objetos!")
+                .setListener(new YesNoDialogListener() {
+                    @Override
+                    public void yes() {
+                        processResponse(result);
+                    }
+
+                    @Override
+                    public void no() {
+                    }
+                });
+        DialogoGeneral dialogoGeneral = builder.build();
+        dialogoGeneral.setCancelable(false);
+        dialogoGeneral.show(getSupportFragmentManager(), "dialogo");
+    }
+
+    public void showTryAgainDialog(OAResult result){
+        DialogoGeneral.Builder builder = new DialogoGeneral.Builder(getApplicationContext())
+                .setTipo(DialogoGeneral.TIPO_ACEPTAR)
+                .setTitulo("¡Buen intento!")
+                .setIcono(R.drawable.ic_advertencia)
+                .setDescripcion("Recuerda que los enunciados tienen retroalimentacion " +
+                        "para saber en qué te equivocaste.\n¡Sigue asi!")
+                .setListener(new YesNoDialogListener() {
+                    @Override
+                    public void yes() {
+                        processResponse(result);
+                    }
+
+                    @Override
+                    public void no() {
+                    }
+                });
+        DialogoGeneral dialogoGeneral = builder.build();
+        dialogoGeneral.setCancelable(false);
+        dialogoGeneral.show(getSupportFragmentManager(), "dialogo");
+    }
+
+    private void processResponse(OAResult result) {
+
+    }
+
+    private boolean allSuccess(List<ResponseStatus> responses) {
+        for (ResponseStatus status : responses) {
+            if (!ResponseStatus.SUCCESS.equals(status)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void loadData() {

@@ -23,6 +23,7 @@ import com.unse.proyecto.ubicua.interfaz.activity.DatosInicioActivity;
 import com.unse.proyecto.ubicua.interfaz.controller.DialogoMenuViewController;
 import com.unse.proyecto.ubicua.interfaz.listener.YesNoDialogListener;
 import com.unse.proyecto.ubicua.network.model.response.UserResponse;
+import com.unse.proyecto.ubicua.principal.util.Utils;
 
 public class DialogoPerfil extends DialogFragment {
 
@@ -71,16 +72,13 @@ public class DialogoPerfil extends DialogFragment {
     private void loadData() {
         UserResponse userInfo = viewModel.getSesionInfo();
         txtNivel.setText(String.format("Nivel %s", userInfo.getLevel()));
-        txtCantKM.setText(String.format("%.2f KM", 0.3f));
-        txtCantPasos.setText(String.valueOf(120));
-        txtCantObj.setText("");
-        int xp = 0;;
-        int level = 0;;
-        int xpLevel = 0;;
-        txtXP.setText(String.format("%s / %s XP", xp, xpLevel));
-        mProgressBar.setMax(xpLevel);
-        mProgressBar.setProgress(xp);
-        tvRegisteredDate.setText(userInfo.created);
+        txtCantKM.setText(userInfo.distance != null ? userInfo.distance : "0 M");
+        txtCantPasos.setText(String.valueOf(userInfo.count));
+        txtCantObj.setText(String.valueOf(userInfo.objects));
+        txtXP.setText(String.format("%s / %s XP", userInfo.xp, userInfo.xpTotal));
+        mProgressBar.setMax(userInfo.xpTotal);
+        mProgressBar.setProgress(userInfo.xp);
+        tvRegisteredDate.setText(Utils.getFechaFormat(userInfo.created));
         tvCarrer.setText(userInfo.career);
         tvFaculty.setText(userInfo.faculty);
         tvName.setText(userInfo.name+" "+userInfo.surname);

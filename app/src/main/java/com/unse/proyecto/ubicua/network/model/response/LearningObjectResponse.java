@@ -1,5 +1,7 @@
 package com.unse.proyecto.ubicua.network.model.response;
 
+import java.util.List;
+
 public class LearningObjectResponse {
 
     private Integer id;
@@ -8,14 +10,16 @@ public class LearningObjectResponse {
     private Integer level;
     private Boolean active;
     private String created;
+    private List<ObjectRulesResponse> rules;
 
-    public LearningObjectResponse(Integer id, String nombre, String archivo, Integer level, Boolean active, String created) {
+    public LearningObjectResponse(Integer id, String nombre, String archivo, Integer level, Boolean active, String created, List<ObjectRulesResponse> rules) {
         this.id = id;
         this.nombre = nombre;
         this.archivo = archivo;
         this.level = level;
         this.active = active;
         this.created = created;
+        this.rules = rules;
     }
 
     public Integer getId() {
@@ -40,5 +44,9 @@ public class LearningObjectResponse {
 
     public String getCreated() {
         return created;
+    }
+
+    public List<ObjectRulesResponse> getRules() {
+        return rules;
     }
 }

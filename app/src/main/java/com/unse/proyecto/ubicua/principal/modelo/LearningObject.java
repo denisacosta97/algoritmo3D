@@ -4,6 +4,11 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import com.unse.proyecto.ubicua.network.model.response.LearningObjectResponse;
+import com.unse.proyecto.ubicua.network.model.response.ObjectRulesResponse;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class LearningObject implements Parcelable {
 
@@ -13,14 +18,16 @@ public class LearningObject implements Parcelable {
     private Integer level;
     private Boolean active;
     private String created;
+    private List<ObjectRules> rules;
 
-    public LearningObject(Integer id, String nombre, String archivo, Integer level, Boolean active, String created) {
+    public LearningObject(Integer id, String nombre, String archivo, Integer level, Boolean active, String created, List<ObjectRules> rules) {
         this.id = id;
         this.nombre = nombre;
         this.archivo = archivo;
         this.level = level;
         this.active = active;
         this.created = created;
+        this.rules = rules;
     }
 
     protected LearningObject(Parcel in) {
@@ -39,6 +46,7 @@ public class LearningObject implements Parcelable {
         byte tmpActive = in.readByte();
         active = tmpActive == 0 ? null : tmpActive == 1;
         created = in.readString();
+        rules = in.createTypedArrayList(ObjectRules.CREATOR);
     }
 
     public static final Creator<LearningObject> CREATOR = new Creator<LearningObject>() {
@@ -75,6 +83,7 @@ public class LearningObject implements Parcelable {
             dest.writeByte((byte) (active ? 1 : 2));
         }
         dest.writeString(created);
+        dest.writeTypedList(rules);
     }
 
     @Override
@@ -82,9 +91,14 @@ public class LearningObject implements Parcelable {
         return 0;
     }
 
-    public static LearningObject build(LearningObjectResponse response){
+    public static LearningObject build(LearningObjectResponse response) {
+        List<ObjectRules> rules = new ArrayList<>();
+        for (ObjectRulesResponse rulesResponse : response.getRules()) {
+            rules.add(new ObjectRules(rulesResponse.getCode(), rulesResponse.getEmpty(),
+                    rulesResponse.getSuccess(), rulesResponse.getError()));
+        }
         return new LearningObject(response.getId(), response.getNombre(),
-                response.getArchivo(), response.getLevel(), response.getActive(), response.getCreated());
+                response.getArchivo(), response.getLevel(), response.getActive(), response.getCreated(), rules);
     }
 
     // Getters (opcional, si los necesitás)
@@ -110,6 +124,10 @@ public class LearningObject implements Parcelable {
 
     public String getCreated() {
         return created;
+    }
+
+    public List<ObjectRules> getRules() {
+        return rules;
     }
 }
 
